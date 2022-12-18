@@ -1,4 +1,5 @@
 import logging
+import os
 
 from blockchainetl.jobs.exporters.console_item_exporter import ConsoleItemExporter
 from blockchainetl.jobs.exporters.in_memory_item_exporter import InMemoryItemExporter
@@ -90,10 +91,11 @@ class EthStreamerAdapter:
 
         all_items = \
             sort_by(enriched_blocks, 'number') + \
-            sort_by(enriched_transactions, ('block_number', 'transaction_index')) + \
+            sort_by(transactions, ('block_number', 'transaction_index')) + \
+            sort_by(receipts, ('block_number', 'transaction_index')) + \
             sort_by(enriched_logs, ('block_number', 'log_index')) + \
             sort_by(enriched_token_transfers, ('block_number', 'log_index')) + \
-            sort_by(enriched_traces, ('block_number', 'trace_index')) + \
+            sort_by(enriched_traces,('block_number', 'trace_index')) + \
             sort_by(enriched_contracts, ('block_number',)) + \
             sort_by(enriched_tokens, ('block_number',))
 
@@ -117,10 +119,17 @@ class EthStreamerAdapter:
         blocks_and_transactions_job.run()
         blocks = blocks_and_transactions_item_exporter.get_items('block')
         transactions = blocks_and_transactions_item_exporter.get_items('transaction')
+
         return blocks, transactions
 
     def _export_receipts_and_logs(self, transactions):
         exporter = InMemoryItemExporter(item_types=['receipt', 'log'])
+
+        contract_filter_str = os.environ.get("CONTRACTS", "")
+        contract_filter = set(map(lambda addr: addr.lower(), contract_filter_str.split(",")))
+        # print('CONTRACT FILTER', contract_filter_str)
+        transactions = list(filter(lambda t: t["to_address"] in contract_filter, transactions))
+
         job = ExportReceiptsJob(
             transaction_hashes_iterable=(transaction['hash'] for transaction in transactions),
             batch_size=self.batch_size,

@@ -87,8 +87,8 @@ def enrich_transactions(transactions, receipts):
             ('effective_gas_price', 'receipt_effective_gas_price')
         ]))
 
-    if len(result) != len(transactions):
-        raise ValueError('The number of transactions is wrong ' + str(result))
+    # if len(result) != len(transactions):
+    #     raise ValueError('The number of transactions is wrong ' + str(result))
 
     return result
 
