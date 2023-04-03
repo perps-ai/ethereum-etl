@@ -128,7 +128,10 @@ class EthStreamerAdapter:
         contract_filter_str = os.environ.get("CONTRACTS", "")
         contract_filter = set(map(lambda addr: addr.lower(), contract_filter_str.split(",")))
         # print('CONTRACT FILTER', contract_filter_str)
-        transactions = list(filter(lambda t: t["to_address"] in contract_filter, transactions))
+        check_is_whitelisted_tx = lambda t: t["to_address"] in contract_filter or\
+                                            t["from_address"] in contract_filter
+
+        transactions = list(filter(check_is_whitelisted_tx, transactions))
 
         job = ExportReceiptsJob(
             transaction_hashes_iterable=(transaction['hash'] for transaction in transactions),
